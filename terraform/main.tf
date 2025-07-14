@@ -164,6 +164,16 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "website_redirect"
   }
 }
 
+terraform {
+  backend "s3" {
+    bucket         = "jakenord-terraform-state"
+    key            = "cv-website/terraform.tfstate"
+    region         = "us-west-2"
+    dynamodb_table = "jakenord-terraform-locks"
+    encrypt        = true
+  }
+}
+
 # CloudFront Origin Access Control
 resource "aws_cloudfront_origin_access_control" "website" {
   name                              = "${var.project_name}-oac"
