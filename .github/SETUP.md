@@ -42,7 +42,18 @@ Create a custom policy with the following permissions:
                 "arn:aws:s3:::www.jakenord.net",
                 "arn:aws:s3:::www.jakenord.net/*",
                 "arn:aws:s3:::jakenord-net-preview-*",
-                "arn:aws:s3:::jakenord-net-preview-*/*"
+                "arn:aws:s3:::jakenord-net-preview-*/*",
+                "arn:aws:s3:::jakenord-terraform-state",
+                "arn:aws:s3:::jakenord-terraform-state/*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "dynamodb:*"
+            ],
+            "Resource": [
+                "arn:aws:dynamodb:us-east-1:*:table/jakenord-terraform-locks"
             ]
         },
         {
@@ -63,21 +74,23 @@ Create a custom policy with the following permissions:
         {
             "Effect": "Allow",
             "Action": [
-                "route53:*"
+                "route53:GetHostedZone",
+                "route53:ListHostedZones",
+                "route53:ChangeResourceRecordSets",
+                "route53:GetChange",
+                "route53:ListResourceRecordSets",
+                "route53:ListTagsForResource"
             ],
             "Resource": "*"
         },
         {
             "Effect": "Allow",
             "Action": [
-                "acm:*"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "iam:*"
+                "acm:RequestCertificate",
+                "acm:DescribeCertificate",
+                "acm:ListCertificates",
+                "acm:AddTagsToCertificate",
+                "acm:DeleteCertificate"
             ],
             "Resource": "*"
         }
