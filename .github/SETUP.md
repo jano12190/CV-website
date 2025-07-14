@@ -119,7 +119,7 @@ For production use, set up remote state storage:
 
 ```bash
 # Create S3 bucket for Terraform state
-aws s3 mb s3://jakenord-terraform-state --region us-west-2
+aws s3 mb s3://jakenord-terraform-state --region us-east-1
 
 # Create DynamoDB table for state locking
 aws dynamodb create-table \
@@ -127,7 +127,7 @@ aws dynamodb create-table \
     --attribute-definitions AttributeName=LockID,AttributeType=S \
     --key-schema AttributeName=LockID,KeyType=HASH \
     --provisioned-throughput ReadCapacityUnits=1,WriteCapacityUnits=1 \
-    --region us-west-2
+    --region us-east-1
 ```
 
 Then update `terraform/main.tf` to include:
@@ -137,7 +137,7 @@ terraform {
   backend "s3" {
     bucket         = "jakenord-terraform-state"
     key            = "cv-website/terraform.tfstate"
-    region         = "us-west-2"
+    region         = "us-east-1"
     dynamodb_table = "jakenord-terraform-locks"
     encrypt        = true
   }

@@ -168,7 +168,7 @@ terraform {
   backend "s3" {
     bucket         = "jakenord-terraform-state"
     key            = "cv-website/terraform.tfstate"
-    region         = "us-west-2"
+    region         = "us-east-1"
     dynamodb_table = "jakenord-terraform-locks"
     encrypt        = true
   }

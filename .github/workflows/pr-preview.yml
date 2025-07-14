@@ -27,7 +27,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: us-west-2
+          aws-region: us-east-1
 
       - name: Create preview bucket name
         id: preview-bucket
@@ -35,7 +35,7 @@ jobs:
           PR_NUMBER=${{ github.event.number }}
           PREVIEW_BUCKET="jakenord-net-preview-pr-${PR_NUMBER}"
           echo "bucket_name=$PREVIEW_BUCKET" >> $GITHUB_OUTPUT
-          echo "preview_url=http://${PREVIEW_BUCKET}.s3-website-us-west-2.amazonaws.com" >> $GITHUB_OUTPUT
+          echo "preview_url=http://${PREVIEW_BUCKET}.s3-website-us-east-1.amazonaws.com" >> $GITHUB_OUTPUT
 
       - name: Create preview S3 bucket
         run: |
@@ -43,7 +43,7 @@ jobs:
           
           # Create bucket if it doesn't exist
           if ! aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
-            aws s3 mb s3://"$BUCKET_NAME" --region us-west-2
+            aws s3 mb s3://"$BUCKET_NAME" --region us-east-1
             
             # Configure as website
             aws s3 website s3://"$BUCKET_NAME" --index-document index.html --error-document error.html
@@ -121,7 +121,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: us-west-2
+          aws-region: us-east-1
 
       - name: Delete preview bucket
         run: |
