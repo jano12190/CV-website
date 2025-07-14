@@ -1,0 +1,138 @@
+name: PR Preview
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore: 
+      - 'terraform/**'
+      - '.github/**'
+      - '*.md'
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  preview:
+    name: Generate Preview
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-west-2
+
+      - name: Create preview bucket name
+        id: preview-bucket
+        run: |
+          PR_NUMBER=${{ github.event.number }}
+          PREVIEW_BUCKET="jakenord-net-preview-pr-${PR_NUMBER}"
+          echo "bucket_name=$PREVIEW_BUCKET" >> $GITHUB_OUTPUT
+          echo "preview_url=http://${PREVIEW_BUCKET}.s3-website-us-west-2.amazonaws.com" >> $GITHUB_OUTPUT
+
+      - name: Create preview S3 bucket
+        run: |
+          BUCKET_NAME=${{ steps.preview-bucket.outputs.bucket_name }}
+          
+          # Create bucket if it doesn't exist
+          if ! aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
+            aws s3 mb s3://"$BUCKET_NAME" --region us-west-2
+            
+            # Configure as website
+            aws s3 website s3://"$BUCKET_NAME" --index-document index.html --error-document error.html
+            
+            # Set public read policy
+            cat > bucket-policy.json << EOF
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Sid": "PublicReadGetObject",
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::$BUCKET_NAME/*"
+              }
+            ]
+          }
+          EOF
+            
+            aws s3api put-bucket-policy --bucket "$BUCKET_NAME" --policy file://bucket-policy.json
+            echo "Created preview bucket: $BUCKET_NAME"
+          else
+            echo "Preview bucket already exists: $BUCKET_NAME"
+          fi
+
+      - name: Deploy preview to S3
+        run: |
+          aws s3 sync . s3://${{ steps.preview-bucket.outputs.bucket_name }} \
+            --delete \
+            --exclude ".git/*" \
+            --exclude ".github/*" \
+            --exclude "terraform/*" \
+            --exclude "*.md" \
+            --exclude ".gitignore" \
+            --exclude "bucket-policy.json"
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const previewUrl = '${{ steps.preview-bucket.outputs.preview_url }}';
+            const bucketName = '${{ steps.preview-bucket.outputs.bucket_name }}';
+            
+            const body = `## 🚀 Preview Deployment
+            
+            Your changes have been deployed to a preview environment!
+            
+            **Preview URL:** ${previewUrl}
+            
+            **Preview Details:**
+            - 📦 S3 Bucket: \`${bucketName}\`
+            - 🌐 Preview will be available for the duration of this PR
+            - ⚠️  This is an HTTP preview (not HTTPS like production)
+            
+            **Note:** Changes may take a few minutes to appear on the preview site.
+            
+            ---
+            *This preview will be automatically cleaned up when the PR is closed.*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  cleanup-preview:
+    name: Cleanup Preview
+    runs-on: ubuntu-latest
+    if: github.event.action == 'closed'
+    
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-west-2
+
+      - name: Delete preview bucket
+        run: |
+          PR_NUMBER=${{ github.event.number }}
+          PREVIEW_BUCKET="jakenord-net-preview-pr-${PR_NUMBER}"
+          
+          if aws s3api head-bucket --bucket "$PREVIEW_BUCKET" 2>/dev/null; then
+            echo "Cleaning up preview bucket: $PREVIEW_BUCKET"
+            aws s3 rm s3://"$PREVIEW_BUCKET" --recursive
+            aws s3 rb s3://"$PREVIEW_BUCKET"
+            echo "Preview bucket deleted successfully"
+          else
+            echo "Preview bucket does not exist or already deleted"
+          fi

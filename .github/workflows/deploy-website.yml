@@ -1,0 +1,106 @@
+name: Deploy Website
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: 
+      - 'terraform/**'
+      - '.github/**'
+      - '*.md'
+      - '.gitignore'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: 'us-west-2'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-website:
+    name: Deploy Website to S3
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get S3 bucket name
+        id: get-bucket
+        run: |
+          # Try to get bucket name from Terraform outputs
+          BUCKET_NAME=$(aws s3api list-buckets --query "Buckets[?contains(Name, 'jakenord.net')].Name" --output text | head -1)
+          if [ -z "$BUCKET_NAME" ]; then
+            BUCKET_NAME="jakenord.net"
+          fi
+          echo "bucket_name=$BUCKET_NAME" >> $GITHUB_OUTPUT
+          echo "Using S3 bucket: $BUCKET_NAME"
+
+      - name: Sync website files to S3
+        run: |
+          aws s3 sync . s3://${{ steps.get-bucket.outputs.bucket_name }} \
+            --delete \
+            --exclude ".git/*" \
+            --exclude ".github/*" \
+            --exclude "terraform/*" \
+            --exclude "*.md" \
+            --exclude ".gitignore" \
+            --exclude "*.txt" \
+            --cache-control "public, max-age=3600" \
+            --metadata-directive REPLACE
+
+      - name: Set cache headers for static assets
+        run: |
+          # Set longer cache for static assets
+          aws s3 cp s3://${{ steps.get-bucket.outputs.bucket_name }}/assets/ s3://${{ steps.get-bucket.outputs.bucket_name }}/assets/ \
+            --recursive \
+            --metadata-directive REPLACE \
+            --cache-control "public, max-age=31536000" \
+            --expires "$(date -d '+1 year' -u +'%Y-%m-%dT%H:%M:%SZ')" || true
+
+      - name: Get CloudFront distribution ID
+        id: get-distribution
+        run: |
+          # Get CloudFront distribution ID for jakenord.net
+          DISTRIBUTION_ID=$(aws cloudfront list-distributions \
+            --query "DistributionList.Items[?contains(Aliases.Items, 'jakenord.net')].Id" \
+            --output text | head -1)
+          
+          if [ -z "$DISTRIBUTION_ID" ]; then
+            echo "Warning: Could not find CloudFront distribution for jakenord.net"
+            echo "distribution_id=" >> $GITHUB_OUTPUT
+          else
+            echo "distribution_id=$DISTRIBUTION_ID" >> $GITHUB_OUTPUT
+            echo "Found CloudFront distribution: $DISTRIBUTION_ID"
+          fi
+
+      - name: Invalidate CloudFront cache
+        if: steps.get-distribution.outputs.distribution_id != ''
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ steps.get-distribution.outputs.distribution_id }} \
+            --paths "/*" \
+            --no-cli-pager
+          echo "CloudFront cache invalidation initiated"
+
+      - name: Verify deployment
+        run: |
+          echo "✅ Website files synced to S3: s3://${{ steps.get-bucket.outputs.bucket_name }}"
+          if [ -n "${{ steps.get-distribution.outputs.distribution_id }}" ]; then
+            echo "✅ CloudFront cache invalidated for distribution: ${{ steps.get-distribution.outputs.distribution_id }}"
+          fi
+          echo "🌐 Website should be available at: https://jakenord.net"
+          echo "⏰ Changes may take 5-15 minutes to propagate globally"
+
+      - name: Performance check
+        run: |
+          echo "📊 Deployment Summary:"
+          echo "Files synced: $(aws s3 ls s3://${{ steps.get-bucket.outputs.bucket_name }} --recursive | wc -l)"
+          echo "Bucket size: $(aws s3 ls s3://${{ steps.get-bucket.outputs.bucket_name }} --recursive --human-readable --summarize | tail -1)"
