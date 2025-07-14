@@ -10,7 +10,19 @@ This guide will help you set up the GitHub Actions workflows for automatic deplo
 
 ## Setup Steps
 
-### 1. Create AWS IAM Role for GitHub Actions
+### 1. Create OIDC Identity Provider in AWS
+
+**This step is required for GitHub Actions to authenticate with AWS.**
+
+1. **Go to IAM → Identity providers → Add provider**
+2. **Provider type:** OpenID Connect
+3. **Provider URL:** `https://token.actions.githubusercontent.com`
+4. **Audience:** `sts.amazonaws.com`
+5. **Click "Add provider"**
+
+**Note:** You only need to create this identity provider once per AWS account. If it already exists, you can skip this step.
+
+### 2. Create AWS IAM Role for GitHub Actions
 
 #### Create IAM Policy
 Create a custom policy with the following permissions:
@@ -76,12 +88,19 @@ Create a custom policy with the following permissions:
 #### Create IAM Role
 1. **Go to IAM → Roles → Create Role**
 2. **Select "Web identity"**
-3. **Identity provider:** `token.actions.githubusercontent.com`
+3. **Identity provider:** Select `token.actions.githubusercontent.com` (created in step 1)
 4. **Audience:** `sts.amazonaws.com`
-5. **GitHub organization:** Your GitHub username
-6. **GitHub repository:** Your repository name
-7. **Attach the policy** you created above
-8. **Name the role:** `GitHubActions-CV-Website`
+5. **Add conditions for security:**
+   - **Condition:** `StringEquals`
+   - **Key:** `token.actions.githubusercontent.com:sub`
+   - **Value:** `repo:YOUR_GITHUB_USERNAME/CV-website:ref:refs/heads/main`
+   - **Additional condition:** `StringEquals`
+   - **Key:** `token.actions.githubusercontent.com:aud` 
+   - **Value:** `sts.amazonaws.com`
+6. **Attach the policy** you created above
+7. **Name the role:** `GitHubActions-CV-Website`
+
+**Replace `YOUR_GITHUB_USERNAME` with your actual GitHub username (e.g., `jano12190`)**
 
 #### Get Role ARN
 Copy the Role ARN (format: `arn:aws:iam::123456789012:role/GitHubActions-CV-Website`)
