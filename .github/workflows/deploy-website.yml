@@ -45,6 +45,7 @@ jobs:
 
       - name: Sync website files to S3
         run: |
+          # Sync HTML files
           aws s3 sync . s3://${{ steps.get-bucket.outputs.bucket_name }} \
             --delete \
             --exclude ".git/*" \
@@ -53,17 +54,44 @@ jobs:
             --exclude "*.md" \
             --exclude ".gitignore" \
             --exclude "*.txt" \
+            --exclude "assets/*" \
             --cache-control "public, max-age=3600" \
+            --content-type "text/html" \
             --metadata-directive REPLACE
-
-      - name: Set cache headers for static assets
-        run: |
-          # Set longer cache for static assets
-          aws s3 cp s3://${{ steps.get-bucket.outputs.bucket_name }}/assets/ s3://${{ steps.get-bucket.outputs.bucket_name }}/assets/ \
-            --recursive \
-            --metadata-directive REPLACE \
+          
+          # Sync CSS files with correct MIME type
+          aws s3 sync assets/css s3://${{ steps.get-bucket.outputs.bucket_name }}/assets/css \
             --cache-control "public, max-age=31536000" \
-            --expires "$(date -d '+1 year' -u +'%Y-%m-%dT%H:%M:%SZ')" || true
+            --content-type "text/css" \
+            --metadata-directive REPLACE
+          
+          # Sync JS files with correct MIME type
+          aws s3 sync assets/js s3://${{ steps.get-bucket.outputs.bucket_name }}/assets/js \
+            --cache-control "public, max-age=31536000" \
+            --content-type "application/javascript" \
+            --metadata-directive REPLACE
+          
+          # Sync other assets (images, fonts, etc.)
+          aws s3 sync assets s3://${{ steps.get-bucket.outputs.bucket_name }}/assets \
+            --exclude "css/*" \
+            --exclude "js/*" \
+            --cache-control "public, max-age=31536000" \
+            --metadata-directive REPLACE
+          
+          # Sync images directory
+          if [ -d "images" ]; then
+            aws s3 sync images s3://${{ steps.get-bucket.outputs.bucket_name }}/images \
+              --cache-control "public, max-age=31536000" \
+              --metadata-directive REPLACE
+          fi
+
+      - name: Verify file uploads
+        run: |
+          echo "📁 Checking uploaded files:"
+          aws s3 ls s3://${{ steps.get-bucket.outputs.bucket_name }}/ --recursive
+          echo ""
+          echo "🎨 Checking CSS files specifically:"
+          aws s3 ls s3://${{ steps.get-bucket.outputs.bucket_name }}/assets/css/ || echo "No CSS files found"
 
       - name: Get CloudFront distribution ID
         id: get-distribution
