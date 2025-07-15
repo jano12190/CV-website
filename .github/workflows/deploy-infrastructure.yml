@@ -129,12 +129,7 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
 
-      - name: Output infrastructure info
-        run: terraform output -json > ../infrastructure-outputs.json
-
-      - name: Upload infrastructure outputs
-        uses: actions/upload-artifact@v4
-        with:
-          name: infrastructure-outputs
-          path: infrastructure-outputs.json
-          retention-days: 30
+      - name: Infrastructure deployment complete
+        run: |
+          echo "✅ Infrastructure deployment successful"
+          terraform output

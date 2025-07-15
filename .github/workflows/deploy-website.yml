@@ -84,28 +84,22 @@ jobs:
               --metadata-directive REPLACE
           fi
 
-      - name: Verify file uploads
+      - name: Verify deployment
         run: |
-          echo "📁 Checking uploaded files:"
-          aws s3 ls s3://${{ steps.get-bucket.outputs.bucket_name }}/ --recursive
-          echo ""
-          echo "🎨 Checking CSS files specifically:"
-          aws s3 ls s3://${{ steps.get-bucket.outputs.bucket_name }}/assets/css/ || echo "No CSS files found"
+          echo "✅ Website files uploaded successfully"
+          echo "📊 Total files: $(aws s3 ls s3://${{ steps.get-bucket.outputs.bucket_name }}/ --recursive | wc -l)"
 
       - name: Get CloudFront distribution ID
         id: get-distribution
         run: |
-          # Get CloudFront distribution ID for jakenord.net
           DISTRIBUTION_ID=$(aws cloudfront list-distributions \
             --query "DistributionList.Items[?contains(Aliases.Items, 'jakenord.net')].Id" \
             --output text | head -1)
           
           if [ -z "$DISTRIBUTION_ID" ]; then
-            echo "Warning: Could not find CloudFront distribution for jakenord.net"
             echo "distribution_id=" >> $GITHUB_OUTPUT
           else
             echo "distribution_id=$DISTRIBUTION_ID" >> $GITHUB_OUTPUT
-            echo "Found CloudFront distribution: $DISTRIBUTION_ID"
           fi
 
       - name: Invalidate CloudFront cache
@@ -115,19 +109,8 @@ jobs:
             --distribution-id ${{ steps.get-distribution.outputs.distribution_id }} \
             --paths "/*" \
             --no-cli-pager
-          echo "CloudFront cache invalidation initiated"
 
-      - name: Verify deployment
+      - name: Deployment complete
         run: |
-          echo "✅ Website files synced to S3: s3://${{ steps.get-bucket.outputs.bucket_name }}"
-          if [ -n "${{ steps.get-distribution.outputs.distribution_id }}" ]; then
-            echo "✅ CloudFront cache invalidated for distribution: ${{ steps.get-distribution.outputs.distribution_id }}"
-          fi
-          echo "🌐 Website should be available at: https://jakenord.net"
-          echo "⏰ Changes may take 5-15 minutes to propagate globally"
-
-      - name: Performance check
-        run: |
-          echo "📊 Deployment Summary:"
-          echo "Files synced: $(aws s3 ls s3://${{ steps.get-bucket.outputs.bucket_name }} --recursive | wc -l)"
-          echo "Bucket size: $(aws s3 ls s3://${{ steps.get-bucket.outputs.bucket_name }} --recursive --human-readable --summarize | tail -1)"
+          echo "✅ Deployment successful"
+          echo "🌐 Website: https://jakenord.net"
