@@ -36,7 +36,7 @@ jobs:
         id: get-bucket
         run: |
           # Try to get bucket name from Terraform outputs
-          BUCKET_NAME=$(aws s3api list-buckets --query "Buckets[?contains(Name, 'jakenord.net')].Name" --output text | head -1)
+          BUCKET_NAME=$(aws s3api list-buckets --query "Buckets[?contains(Name, 'jakenord.net')].Name" --output text | head -1 | tr -d '\n\r\t ')
           if [ -z "$BUCKET_NAME" ]; then
             BUCKET_NAME="jakenord.net"
           fi
