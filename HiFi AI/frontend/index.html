@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI HiFi - Intelligent Speaker & Amplifier Pairing</title>
+    <link rel="stylesheet" href="styles.css">
+    <meta name="description" content="AI-powered speaker and amplifier pairing recommendations based on real audiophile experiences and forum discussions.">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-container">
+                <h1 class="logo">AI HiFi</h1>
+                <p class="tagline">Intelligent Audio Pairing</p>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="hero-content">
+                <h2>Find Your Perfect Audio Match</h2>
+                <p>AI-powered speaker and amplifier pairing recommendations based on real audiophile experiences from forums and reviews.</p>
+            </div>
+        </section>
+
+        <section class="pairing-section">
+            <div class="container">
+                <h2>Analyze Your Audio Pairing</h2>
+                <p>Enter any speaker and amplifier models to get detailed compatibility analysis powered by AI and community insights.</p>
+                <div class="pairing-form">
+                    <div class="form-group">
+                        <label for="speaker-input">Speaker Model:</label>
+                        <input type="text" id="speaker-input" placeholder="e.g., KEF LS50, Focal Aria 906, B&W 685 S2">
+                    </div>
+                    <div class="form-group">
+                        <label for="amplifier-input">Amplifier Model:</label>
+                        <input type="text" id="amplifier-input" placeholder="e.g., Marantz PM6007, Cambridge CXA61">
+                    </div>
+                    <div class="form-group">
+                        <label for="sound-preference">Sound Preference:</label>
+                        <select id="sound-preference">
+                            <option value="">Select preference...</option>
+                            <option value="neutral">Neutral</option>
+                            <option value="warm">Warm</option>
+                            <option value="bright">Bright</option>
+                            <option value="bass-heavy">Bass-Heavy</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="room-size">Room Size:</label>
+                        <select id="room-size">
+                            <option value="small">Small (< 150 sq ft)</option>
+                            <option value="medium" selected>Medium (150-300 sq ft)</option>
+                            <option value="large">Large (> 300 sq ft)</option>
+                        </select>
+                    </div>
+                    <button class="pairing-button">Analyze Pairing with AI</button>
+                </div>
+                <div id="recent-pairings" class="recent-pairings"></div>
+                <div id="pairing-results" class="results-container">
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 AI HiFi. Intelligent audio pairing recommendations.</p>
+            <p><small>Analysis based on community discussions from audiophile forums and expert reviews.</small></p>
+        </div>
+    </footer>
+
+    <script src="config.js"></script>
+    <script src="ai-pairing.js"></script>
+</body>
+</html>

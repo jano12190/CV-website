@@ -1,0 +1,21 @@
+{
+  "name": "ai-hifi-frontend",
+  "version": "1.0.0",
+  "description": "AI HiFi frontend - secure static website for S3 hosting",
+  "main": "index.html",
+  "scripts": {
+    "build": "node build.js",
+    "build:s3": "node build.js && echo 'Frontend ready for S3 upload: ./dist/'",
+    "serve": "python3 -m http.server 8080 || python -m SimpleHTTPServer 8080"
+  },
+  "devDependencies": {
+    "terser": "^5.19.2"
+  },
+  "keywords": ["audio", "hifi", "ai", "pairing", "frontend", "s3"],
+  "author": "",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/ai-hifi.git"
+  }
+}
